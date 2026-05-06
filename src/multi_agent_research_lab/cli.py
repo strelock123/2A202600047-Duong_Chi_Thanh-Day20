@@ -1,5 +1,6 @@
 """Command-line entrypoint for the Multi-Agent Research Lab."""
 
+import json
 from typing import Annotated
 
 import typer
@@ -110,19 +111,42 @@ def benchmark(
     console.print("[bold cyan]>> Running multi-agent workflow...[/bold cyan]")
     multi_state, multi_metrics = run_benchmark("multi-agent", query, _multi_agent_runner)
 
+    # Save trace JSON for the multi-agent run
+    trace_payload = {
+        "query": query,
+        "route_history": multi_state.route_history,
+        "trace_events": multi_state.trace,
+        "agent_costs": [
+            {
+                "agent": r.agent,
+                "cost_usd": r.metadata.get("cost_usd"),
+                "input_tokens": r.metadata.get("input_tokens"),
+                "output_tokens": r.metadata.get("output_tokens"),
+            }
+            for r in multi_state.agent_results
+        ],
+        "errors": multi_state.errors,
+    }
+    store = LocalArtifactStore()
+    store.write_text("trace_example.json", json.dumps(trace_payload, indent=2, ensure_ascii=False))
+
     answers = {
         "single-agent": baseline_state.final_answer or "",
         "multi-agent": multi_state.final_answer or "",
     }
-    report = render_markdown_report([baseline_metrics, multi_metrics], answers=answers)
-
-    store = LocalArtifactStore()
+    report = render_markdown_report(
+        [baseline_metrics, multi_metrics],
+        answers=answers,
+        trace=multi_state.trace,
+        agent_results=multi_state.agent_results,
+    )
     store.write_text("benchmark_report.md", report)
 
     # Print truncated summary to terminal (full report in file)
     for line in report.split("\n")[:30]:
         print(line)
     console.print("[green]Report saved to reports/benchmark_report.md[/green]")
+    console.print("[green]Trace saved to reports/trace_example.json[/green]")
 
 
 if __name__ == "__main__":

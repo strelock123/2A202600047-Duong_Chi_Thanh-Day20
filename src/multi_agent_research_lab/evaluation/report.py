@@ -1,11 +1,15 @@
 """Benchmark report rendering — markdown table + comparison analysis."""
 
-from multi_agent_research_lab.core.schemas import BenchmarkMetrics
+from typing import Any
+
+from multi_agent_research_lab.core.schemas import AgentResult, BenchmarkMetrics
 
 
 def render_markdown_report(
     metrics: list[BenchmarkMetrics],
     answers: dict[str, str] | None = None,
+    trace: list[dict[str, Any]] | None = None,
+    agent_results: list[AgentResult] | None = None,
 ) -> str:
     """Render benchmark metrics to a rich markdown report.
 
@@ -64,6 +68,30 @@ def render_markdown_report(
         for run_name, answer in answers.items():
             excerpt = (answer[:600] + "…") if len(answer) > 600 else answer
             lines += [f"### {run_name}", "", excerpt, ""]
+
+    # Trace section
+    if trace:
+        lines += ["", "## Execution Trace (Multi-Agent)", ""]
+        lines += ["| Step | Event | Payload |", "|---:|---|---|"]
+        for i, event in enumerate(trace):
+            payload_str = ", ".join(f"{k}={v}" for k, v in event.get("payload", {}).items())
+            lines.append(f"| {i + 1} | `{event.get('name', '')}` | {payload_str} |")
+
+    # Agent cost breakdown
+    if agent_results:
+        lines += ["", "## Agent Cost Breakdown (Multi-Agent)", ""]
+        lines += ["| Agent | Input tokens | Output tokens | Cost (USD) |", "|---|---:|---:|---:|"]
+        total_cost = 0.0
+        for r in agent_results:
+            cost = r.metadata.get("cost_usd") or 0
+            total_cost += cost
+            lines.append(
+                f"| {r.agent} "
+                f"| {r.metadata.get('input_tokens', 'N/A')} "
+                f"| {r.metadata.get('output_tokens', 'N/A')} "
+                f"| ${cost:.5f} |"
+            )
+        lines.append(f"| **Total** | | | **${total_cost:.5f}** |")
 
     # Failure mode notes
     lines += [

@@ -1,0 +1,78 @@
+{
+  "query": "Research GraphRAG state-of-the-art and write a 500-word summary",
+  "route_history": [
+    "researcher",
+    "analyst",
+    "writer",
+    "done"
+  ],
+  "trace_events": [
+    {
+      "name": "supervisor.route",
+      "payload": {
+        "next": "researcher",
+        "iteration": 1
+      }
+    },
+    {
+      "name": "researcher.done",
+      "payload": {
+        "sources_count": 5
+      }
+    },
+    {
+      "name": "supervisor.route",
+      "payload": {
+        "next": "analyst",
+        "iteration": 2
+      }
+    },
+    {
+      "name": "analyst.done",
+      "payload": {
+        "analysis_length": 3159
+      }
+    },
+    {
+      "name": "supervisor.route",
+      "payload": {
+        "next": "writer",
+        "iteration": 3
+      }
+    },
+    {
+      "name": "writer.done",
+      "payload": {
+        "answer_length": 4215
+      }
+    },
+    {
+      "name": "supervisor.route",
+      "payload": {
+        "next": "done",
+        "iteration": 4
+      }
+    }
+  ],
+  "agent_costs": [
+    {
+      "agent": "researcher",
+      "cost_usd": 0.00053415,
+      "input_tokens": 549,
+      "output_tokens": 753
+    },
+    {
+      "agent": "analyst",
+      "cost_usd": 0.0004677,
+      "input_tokens": 902,
+      "output_tokens": 554
+    },
+    {
+      "agent": "writer",
+      "cost_usd": 0.0007296,
+      "input_tokens": 1632,
+      "output_tokens": 808
+    }
+  ],
+  "errors": []
+}

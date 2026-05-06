@@ -4,63 +4,63 @@
 
 | Run | Latency (s) | Cost (USD) | Quality /10 | Notes |
 |---|---:|---:|---:|---|
-| single-agent | 13.89s | $0.00045 | 8.5 | citations=0/5 errors=0 route=[N/A] |
-| multi-agent | 51.66s | $0.00181 | 8.5 | citations=5/5 errors=0 route=[researcher->analyst->writer->done] |
+| single-agent | 13.41s | $0.00041 | 8.5 | citations=0/5 errors=0 route=[N/A] |
+| multi-agent | 41.95s | $0.00173 | 8.5 | citations=5/5 errors=0 route=[researcher->analyst->writer->done] |
 
 ## Analysis
 
-- **Latency**: Multi-agent is +37.77s (slower) than baseline.
-- **Cost**: Multi-agent costs +$0.00136 (more) than baseline.
+- **Latency**: Multi-agent is +28.54s (slower) than baseline.
+- **Cost**: Multi-agent costs +$0.00132 (more) than baseline.
 - **Quality**: Multi-agent scores +0.0 pts vs baseline (8.5 -> 8.5).
 
 ## Answer Excerpts
 
 ### single-agent
 
-GraphRAG (Graph Retrieval-Augmented Generation) is an innovative framework that combines the strengths of graph-based data representation with retrieval-augmented generation techniques in natural language processing (NLP). This approach is particularly effective for tasks that require understanding complex relationships and structures within data, such as question answering, summarization, and dialogue systems. By leveraging graph structures, GraphRAG enhances the retrieval of relevant information, which is then used to generate coherent and contextually appropriate responses.
+GraphRAG (Graph-based Retrieval-Augmented Generation) is a state-of-the-art framework that integrates graph structures into the retrieval-augmented generation process, enhancing the capabilities of generative models by leveraging the relational information present in graph data. This approach has shown significant promise in various applications, particularly in natural language processing (NLP) tasks such as question answering, summarization, and dialogue systems. 
 
-### Key Points:…
+### Key Points:
+
+- **Conceptual Foundation**: GraphRAG builds on the principles of retrieval-augmented generation, where a gener…
 
 ### multi-agent
 
-# GraphRAG: A State-of-the-Art Framework for Graph Representation Learning
+# Summary of GraphRAG: State-of-the-Art in Retrieval-Augmented Generation
 
-GraphRAG is an innovative framework that merges graph neural networks (GNNs) with attention mechanisms to enhance representation learning for graph-structured data. This approach not only improves the performance of various tasks such as node classification and link prediction but also addresses the complexities inherent in graph data. The integration of these technologies positions GraphRAG as a state-of-the-art solution in the field of graph representation learning.
+GraphRAG is an innovative model that integrates graph structures into retrieval-augmented generation (RAG) frameworks, significantly enhancing the coherence and accuracy of generated text. This model not only outperforms traditional RAG approaches but also holds the potential to revolutionize various applications in natural language processing (NLP), such as chatbots and search engines.
 
 ## Key Features of GraphRAG
 
-1. **Integration of G…
+### 1. Graph-Based Architecture
+GraphRAG employs a graph-based architecture that leverages relational inf…
 
+
+## Execution Trace (Multi-Agent)
+
+| Step | Event | Payload |
+|---:|---|---|
+| 1 | `supervisor.route` | next=researcher, iteration=1 |
+| 2 | `researcher.done` | sources_count=5 |
+| 3 | `supervisor.route` | next=analyst, iteration=2 |
+| 4 | `analyst.done` | analysis_length=3159 |
+| 5 | `supervisor.route` | next=writer, iteration=3 |
+| 6 | `writer.done` | answer_length=4215 |
+| 7 | `supervisor.route` | next=done, iteration=4 |
+
+## Agent Cost Breakdown (Multi-Agent)
+
+| Agent | Input tokens | Output tokens | Cost (USD) |
+|---|---:|---:|---:|
+| researcher | 549 | 753 | $0.00053 |
+| analyst | 902 | 554 | $0.00047 |
+| writer | 1632 | 808 | $0.00073 |
+| **Total** | | | **$0.00173** |
 
 ## Failure Modes & Mitigations
 
 | Mode | Observation | Fix applied |
 |---|---|---|
 | Infinite loop | Agent could route indefinitely | `max_iterations` cap in SupervisorAgent |
-| LLM timeout | API call hangs | `timeout=60` + exponential-backoff retry (3x) |
+| LLM timeout | API call hangs | `timeout=60` + exponential-backoff retry (3×) |
 | Bad JSON from search | SearchClient parse error | Fallback `SourceDocument` returned |
 | Missing notes | Analyst/Writer called without prior data | Guard clauses append to `state.errors` |
-
-## Exit Ticket
-
-### 1. Case nao nen dung multi-agent? Vi sao?
-
-**Nen dung khi:**
-- Nhiem vu co the chia thanh cac buoc doc lap ro rang (research -> analyze -> write)
-- Moi buoc can cau hinh LLM khac nhau (temperature, system prompt chuyen biet)
-- Can co kha nang debug tung buoc rieng biet
-- Ket qua can co nguon trich dan (researcher lay nguon, writer dung nguon do)
-- Workflow co the song song hoa mot phan (nhieu researcher chay cung luc)
-
-**Vi du phu hop:** Research assistant, code review pipeline (lint -> test -> review), data pipeline (extract -> transform -> validate).
-
-### 2. Case nao khong nen dung multi-agent? Vi sao?
-
-**Khong nen dung khi:**
-- Nhiem vu don gian, mot LLM call la du (QA chit-chat, classification, summarization ngan)
-- Latency la uu tien hang dau: multi-agent cham hon 3-4x do nhieu round-trip LLM
-- Chi phi la rang buoc cung: moi agent them 1 LLM call, tong cost tang tuyen tinh
-- Chua co dang bai ro: neu chua biet agent nao can gi, tach ra se tao coupling phuc tap
-- Team nho, it thoi gian: overhead de debug distributed state lon hon loi ich
-
-**Nguyen tac nhanh:** Neu co the giai quyet bang 1 prompt tot, hay lam vay truoc. Chi them agent khi co measurable gain.
