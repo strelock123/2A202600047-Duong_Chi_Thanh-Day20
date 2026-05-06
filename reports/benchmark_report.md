@@ -37,6 +37,30 @@ GraphRAG is an innovative framework that merges graph neural networks (GNNs) wit
 | Mode | Observation | Fix applied |
 |---|---|---|
 | Infinite loop | Agent could route indefinitely | `max_iterations` cap in SupervisorAgent |
-| LLM timeout | API call hangs | `timeout=60` + exponential-backoff retry (3×) |
+| LLM timeout | API call hangs | `timeout=60` + exponential-backoff retry (3x) |
 | Bad JSON from search | SearchClient parse error | Fallback `SourceDocument` returned |
 | Missing notes | Analyst/Writer called without prior data | Guard clauses append to `state.errors` |
+
+## Exit Ticket
+
+### 1. Case nao nen dung multi-agent? Vi sao?
+
+**Nen dung khi:**
+- Nhiem vu co the chia thanh cac buoc doc lap ro rang (research -> analyze -> write)
+- Moi buoc can cau hinh LLM khac nhau (temperature, system prompt chuyen biet)
+- Can co kha nang debug tung buoc rieng biet
+- Ket qua can co nguon trich dan (researcher lay nguon, writer dung nguon do)
+- Workflow co the song song hoa mot phan (nhieu researcher chay cung luc)
+
+**Vi du phu hop:** Research assistant, code review pipeline (lint -> test -> review), data pipeline (extract -> transform -> validate).
+
+### 2. Case nao khong nen dung multi-agent? Vi sao?
+
+**Khong nen dung khi:**
+- Nhiem vu don gian, mot LLM call la du (QA chit-chat, classification, summarization ngan)
+- Latency la uu tien hang dau: multi-agent cham hon 3-4x do nhieu round-trip LLM
+- Chi phi la rang buoc cung: moi agent them 1 LLM call, tong cost tang tuyen tinh
+- Chua co dang bai ro: neu chua biet agent nao can gi, tach ra se tao coupling phuc tap
+- Team nho, it thoi gian: overhead de debug distributed state lon hon loi ich
+
+**Nguyen tac nhanh:** Neu co the giai quyet bang 1 prompt tot, hay lam vay truoc. Chi them agent khi co measurable gain.
