@@ -1,156 +1,210 @@
-# Lab 20: Multi-Agent Research System Starter
+# Multi-Agent Research System
 
-Starter repo cho bài lab **Multi-Agent Systems**: xây dựng hệ thống nghiên cứu gồm **Supervisor + Researcher + Analyst + Writer** và benchmark với single-agent baseline.
+> Lab 20 — Duong Chi Thanh (2A202600047)
 
-> Mục tiêu của repo này là cung cấp **production-grade skeleton** để học viên phát triển code cá nhân. Các phần logic quan trọng được để ở dạng `TODO` để học viên tự triển khai.
+He thong nghien cuu da agent: **Supervisor → Researcher → Analyst → Writer**, co benchmark so sanh voi single-agent baseline.
 
-## Learning outcomes
+---
 
-Sau 2 giờ lab, học viên cần có thể:
+## Kien truc
 
-1. Thiết kế role rõ ràng cho nhiều agent.
-2. Xây dựng shared state đủ thông tin cho handoff.
-3. Thêm guardrail tối thiểu: max iterations, timeout, retry/fallback, validation.
-4. Trace được luồng chạy và giải thích agent nào làm gì.
-5. Benchmark single-agent vs multi-agent theo quality, latency, cost.
-
-## Architecture mục tiêu
-
-```text
+```
 User Query
-   |
-   v
-Supervisor / Router
-   |------> Researcher Agent  -> research_notes
-   |------> Analyst Agent     -> analysis_notes
-   |------> Writer Agent      -> final_answer
-   |
-   v
-Trace + Benchmark Report
+    |
+    v
+Supervisor Agent        <-- quyet dinh buoc tiep theo
+    |
+    |---> Researcher Agent  --> state.sources + state.research_notes
+    |---> Analyst Agent     --> state.analysis_notes
+    |---> Writer Agent      --> state.final_answer
+    |
+    v
+Benchmark Report + Trace
 ```
 
-## Cấu trúc repo
+| Agent | Nhiem vu |
+|---|---|
+| **Supervisor** | Routing: doc state, chon agent tiep theo, enforce max_iterations |
+| **Researcher** | Tim kiem nguon, tong hop research notes |
+| **Analyst** | Phan tich notes, danh gia do tin cay, neu diem mau thuan |
+| **Writer** | Viet final answer co dan nguon |
 
-```text
+---
+
+## Cau truc thu muc
+
+```
 .
 ├── src/multi_agent_research_lab/
-│   ├── agents/              # Agent interfaces + skeletons
-│   ├── core/                # Config, state, schemas, errors
-│   ├── graph/               # LangGraph workflow skeleton
-│   ├── services/            # LLM, search, storage clients
-│   ├── evaluation/          # Benchmark/evaluation skeleton
-│   ├── observability/       # Logging/tracing hooks
-│   └── cli.py               # CLI entrypoint
-├── configs/                 # YAML configs for lab variants
-├── docs/                    # Lab guide, rubric, design notes
-├── tests/                   # Unit tests for skeleton behavior
-├── notebooks/               # Optional notebook entrypoint
-├── scripts/                 # Helper scripts
-├── .env.example             # Environment variables template
-├── pyproject.toml           # Python project config
-├── Dockerfile               # Containerized dev/runtime
-└── Makefile                 # Common commands
+│   ├── agents/          # Supervisor, Researcher, Analyst, Writer
+│   ├── core/            # Config, State, Schemas, Errors
+│   ├── graph/           # LangGraph workflow
+│   ├── services/        # LLM client (OpenAI), Search client (mock)
+│   ├── evaluation/      # Benchmark runner + report renderer
+│   ├── observability/   # Logging + tracing hooks
+│   └── cli.py           # CLI entrypoint
+├── configs/             # lab_default.yaml
+├── docs/                # design_template.md, peer_review_rubric.md
+├── reports/             # benchmark_report.md, trace_example.json
+└── tests/               # Unit tests
 ```
 
-## Quickstart
+---
 
-### 1. Tạo môi trường
+## Cai dat
+
+### 1. Tao moi truong ao
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
-pip install -e "[dev]"
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+### 2. Cai dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+Neu gap loi mang, thu:
+
+```bash
+pip install --no-cache-dir openai langgraph langchain-core pydantic pydantic-settings typer rich python-dotenv PyYAML tenacity
+pip install -e . --no-deps
+```
+
+### 3. Cau hinh API key
+
+```bash
 cp .env.example .env
 ```
 
-### 2. Cấu hình API keys
+Mo `.env` va dien:
 
-Mở `.env` và điền key cần thiết.
-
-```bash
-OPENAI_API_KEY=...
-# optional
-LANGSMITH_API_KEY=...
-TAVILY_API_KEY=...
+```env
+OPENAI_API_KEY=sk-...      # bat buoc
+OPENAI_MODEL=gpt-4o-mini   # mac dinh
+MAX_ITERATIONS=6           # gioi han vong lap
+TIMEOUT_SECONDS=60         # timeout LLM
 ```
 
-### 3. Chạy smoke test
+> Khong can Tavily hay LangSmith — he thong dung LLM-powered mock search.
 
-```bash
-make test
-python -m multi_agent_research_lab.cli --help
-```
+---
 
-### 4. Chạy baseline skeleton
+## Su dung
+
+### Chay single-agent baseline
 
 ```bash
 python -m multi_agent_research_lab.cli baseline \
-  --query "Research GraphRAG state-of-the-art and write a 500-word summary"
+  --query "What is GraphRAG and how does it improve RAG systems?"
 ```
 
-Lệnh này chỉ chạy khung baseline tối giản. Học viên cần tự triển khai logic LLM thực tế trong `src/multi_agent_research_lab/services/llm_client.py`.
+Output: cau tra loi truc tiep tu 1 LLM call + latency/cost/quality.
 
-### 5. Chạy multi-agent skeleton
+### Chay multi-agent workflow
 
 ```bash
 python -m multi_agent_research_lab.cli multi-agent \
+  --query "What is GraphRAG and how does it improve RAG systems?"
+```
+
+Output: ket qua sau khi qua 3 agents (Researcher → Analyst → Writer) + route history.
+
+### Chay benchmark (khuyen dung)
+
+```bash
+python -m multi_agent_research_lab.cli benchmark \
   --query "Research GraphRAG state-of-the-art and write a 500-word summary"
 ```
 
-Mặc định lệnh sẽ báo các `TODO` cần làm. Đây là chủ đích của starter repo.
+Lenh nay se:
+1. Chay single-agent baseline
+2. Chay multi-agent workflow
+3. Do latency, cost, quality, citation coverage
+4. Luu `reports/benchmark_report.md` — bang so sanh day du
+5. Luu `reports/trace_example.json` — trace tung buoc cua multi-agent
 
-## Milestones trong 2 giờ lab
+---
 
-| Thời lượng | Milestone | File gợi ý |
-|---:|---|---|
-| 0-15' | Setup, chạy baseline skeleton | `cli.py`, `services/llm_client.py` |
-| 15-45' | Build Supervisor / router | `agents/supervisor.py`, `graph/workflow.py` |
-| 45-75' | Thêm Researcher, Analyst, Writer | `agents/*.py`, `core/state.py` |
-| 75-95' | Trace + benchmark single vs multi | `observability/tracing.py`, `evaluation/benchmark.py` |
-| 95-115' | Peer review theo rubric | `docs/peer_review_rubric.md` |
-| 115-120' | Exit ticket | `docs/lab_guide.md` |
+## Ket qua benchmark thuc te
 
-## Quy ước production trong repo
+| Run | Latency | Cost | Quality /10 | Citations |
+|---|---:|---:|---:|---:|
+| single-agent | ~14s | ~$0.00045 | 8.5 | 0/5 |
+| multi-agent | ~50s | ~$0.00181 | 8.5 | 5/5 |
 
-- Tách rõ `agents`, `services`, `core`, `graph`, `evaluation`, `observability`.
-- Không hard-code API key trong code.
-- Tất cả input/output chính dùng Pydantic schema.
-- Có type hints, linting, formatting, unit test tối thiểu.
-- Có logging/tracing hook ngay từ đầu.
-- Không để agent chạy vô hạn: dùng `max_iterations`, `timeout_seconds`.
-- Có benchmark report thay vì chỉ demo output đẹp.
+**Nhan xet:**
+- Multi-agent cham hon ~4x va dat hon ~4x
+- Chat luong tuong duong nhung multi-agent co day du trich dan nguon
+- Single-agent phu hop khi can toc do; multi-agent phu hop khi can nguon trich dan
 
-## TODO chính cho học viên
+---
 
-Tìm trong code các marker:
+## Trace & Observability
 
-```bash
-grep -R "TODO(student)" -n src tests docs
+Sau khi chay `benchmark`, xem trace tai:
+
+- **`reports/trace_example.json`** — trace JSON day du (route, events, chi phi tung agent)
+- **`reports/benchmark_report.md`** — bang Execution Trace + Agent Cost Breakdown
+
+Vi du trace:
+
+```
+supervisor.route  --> researcher  (iteration 1)
+researcher.done   --> sources_count=5
+supervisor.route  --> analyst     (iteration 2)
+analyst.done      --> analysis_length=3159
+supervisor.route  --> writer      (iteration 3)
+writer.done       --> answer_length=4215
+supervisor.route  --> done        (iteration 4)
 ```
 
-Các phần học viên cần tự làm:
+---
 
-1. Implement LLM client.
-2. Implement web/search client hoặc mock search source.
-3. Implement routing decision trong Supervisor.
-4. Implement từng worker agent.
-5. Build LangGraph workflow.
-6. Thêm tracing provider thật: LangSmith, Langfuse hoặc OpenTelemetry.
-7. Viết benchmark report.
+## Guardrails
+
+| Bao ve | Co che |
+|---|---|
+| Infinite loop | `MAX_ITERATIONS=6` trong SupervisorAgent |
+| LLM treo | `timeout=60s` + retry 3 lan voi exponential backoff |
+| Search loi JSON | Fallback tra ve 1 SourceDocument mac dinh |
+| Agent thieu input | Guard clause → ghi `state.errors`, khong crash |
+| Qua nhieu loi | `errors >= 3` → supervisor dung lai |
+
+---
+
+## Chay tests
+
+```bash
+pytest tests/ -v
+```
+
+---
 
 ## Deliverables
 
-Học viên nộp:
+| # | File | Mo ta |
+|---|---|---|
+| 1 | GitHub repo | https://github.com/strelock123/2A202600047-Duong_Chi_Thanh-Day20 |
+| 2 | `reports/trace_example.json` | Execution trace day du |
+| 3 | `reports/benchmark_report.md` | So sanh single vs multi-agent |
+| 4 | `docs/design_template.md` | Thiet ke he thong, failure modes, benchmark plan |
 
-1. GitHub repo cá nhân.
-2. Screenshot trace hoặc link trace.
-3. `reports/benchmark_report.md` so sánh single vs multi-agent.
-4. Một đoạn giải thích failure mode và cách fix.
+---
 
-## References
+## Exit Ticket
 
-- Anthropic: Building effective agents — https://www.anthropic.com/engineering/building-effective-agents
-- OpenAI Agents SDK orchestration/handoffs — https://developers.openai.com/api/docs/guides/agents/orchestration
-- LangGraph concepts — https://langchain-ai.github.io/langgraph/concepts/
-- LangSmith tracing — https://docs.smith.langchain.com/
-- Langfuse tracing — https://langfuse.com/docs
+**1. Khi nao nen dung multi-agent?**
+
+Khi nhiem vu co the chia thanh cac buoc doc lap ro rang, moi buoc can cau hinh LLM khac nhau, hoac ket qua can co trich dan nguon cu the. Vi du: research pipeline, code review, data processing.
+
+**2. Khi nao khong nen dung multi-agent?**
+
+Khi nhiem vu don gian (1 LLM call la du), hoac latency/cost la rang buoc chinh. Quy tac: neu co the giai quyet bang 1 prompt tot, hay lam vay truoc.
